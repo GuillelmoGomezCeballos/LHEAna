@@ -61,7 +61,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 
   getline(ifs,line);
 
-  int nevents=0,npass[3]={0,0,0};
+  int nevents=0,npass[4]={0,0,0,0};
   // get the event info
   while(getline(ifs,line)) {
     if(line.compare("<event>")==0) {
@@ -82,51 +82,54 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       // loop over the rest of them, skip initial line
       getline(ifs,line);
       getline(ifs,line);
-      int pass[3] = {0,0,0};int lType[3] = {0,0,0};int nJets = 0;
+      int pass[4] = {0,0,0,0};int lType[3] = {0,0,0};int nJets = 0;
       while(line.compare("</event>") != 0) {
 	stringstream sstmp(line);
-	sstmp >> idup >> istup >> mothup1 >> mothup2 >> icolup1 >> icolup2 >> pupx >> pupy >> pupz >> pupe >> pupm >> vtimup >> spinup;
+	TString Line = line;
+	if(!Line.Contains("#")) { // avoid crappy lines
+	  sstmp >> idup >> istup >> mothup1 >> mothup2 >> icolup1 >> icolup2 >> pupx >> pupy >> pupz >> pupe >> pupm >> vtimup >> spinup;
 
-	TLorentzVector vec;
-	vec.SetPxPyPzE(pupx,pupy,pupz,pupe);
+	  TLorentzVector vec;
+	  vec.SetPxPyPzE(pupx,pupy,pupz,pupe);
 
-	if(idup==+24) {pass[0]++;}
+	  if(idup==+24) {pass[0]++;}
 
-	if(idup==-24) {pass[1]++;}
-        	
-	if(istup == 1){
-          if(TMath::Abs(idup) ==  11 || TMath::Abs(idup) ==  13 || (TMath::Abs(idup) ==  15 && withTaus == kTRUE)) {
-	    pass[2]++;
-	    if     (vec.Pt() > vl1.Pt()){
-	      vl3.SetPxPyPzE(vl2.Px(),vl2.Py(),vl2.Pz(),vl2.E());
-	      vl2.SetPxPyPzE(vl1.Px(),vl1.Py(),vl1.Pz(),vl1.E());
-	      vl1.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
-	    }
-	    else if(vec.Pt() > vl2.Pt()){
-	      vl3.SetPxPyPzE(vl2.Px(),vl2.Py(),vl2.Pz(),vl2.E());
-	      vl2.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
-	    }
-	    else if(vec.Pt() > vl3.Pt()){
-	      vl3.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
+	  if(idup==-24) {pass[1]++;}
+
+	  if(istup == 1){
+            if(TMath::Abs(idup) ==  11 || TMath::Abs(idup) ==  13 || (TMath::Abs(idup) ==  15 && withTaus == kTRUE)) {
+	      pass[2]++;
+	      if     (vec.Pt() > vl1.Pt()){
+		vl3.SetPxPyPzE(vl2.Px(),vl2.Py(),vl2.Pz(),vl2.E());
+		vl2.SetPxPyPzE(vl1.Px(),vl1.Py(),vl1.Pz(),vl1.E());
+		vl1.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
+	      }
+	      else if(vec.Pt() > vl2.Pt()){
+		vl3.SetPxPyPzE(vl2.Px(),vl2.Py(),vl2.Pz(),vl2.E());
+		vl2.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
+	      }
+	      else if(vec.Pt() > vl3.Pt()){
+		vl3.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
+	      }
+            }
+            if(TMath::Abs(idup) == 12 || TMath::Abs(idup) == 14 || TMath::Abs(idup) == 16) {vn.SetPxPyPzE(vn.Px()+vec.Px(),vn.Py()+vec.Py(),vn.Pz()+vec.Pz(),vn.E()+vec.E()); pass[3]++;}
+	    if(TMath::Abs(idup) == 11) lType[0]++;
+	    if(TMath::Abs(idup) == 13) lType[1]++;
+	    if(TMath::Abs(idup) == 15) lType[2]++;
+
+	    if(TMath::Abs(idup) == 1 || TMath::Abs(idup) == 2 || TMath::Abs(idup) == 3 || 
+	       TMath::Abs(idup) == 4 || TMath::Abs(idup) == 5 || TMath::Abs(idup) == 6) {
+	      nJets++;
+	      if     (vec.Pt() > vj1.Pt()){
+		vj2.SetPxPyPzE(vj1.Px(),vj1.Py(),vj1.Pz(),vj1.E());
+		vj1.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
+	      }
+	      else if(vec.Pt() > vj2.Pt()){
+		vj2.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
+	      }
 	    }
           }
-          if(TMath::Abs(idup) == 12 || TMath::Abs(idup) == 14 || TMath::Abs(idup) == 16) {vn.SetPxPyPzE(vn.Px()+vec.Px(),vn.Py()+vec.Py(),vn.Pz()+vec.Pz(),vn.E()+vec.E()); pass[4]++;}
-	  if(TMath::Abs(idup) == 11) lType[0]++;
-	  if(TMath::Abs(idup) == 13) lType[1]++;
-	  if(TMath::Abs(idup) == 15) lType[2]++;
-
-	  if(TMath::Abs(idup) == 1 || TMath::Abs(idup) == 2 || TMath::Abs(idup) == 3 || 
-	     TMath::Abs(idup) == 4 || TMath::Abs(idup) == 5 || TMath::Abs(idup) == 6) {
-	    nJets++;
-	    if     (vec.Pt() > vj1.Pt()){
-	      vj2.SetPxPyPzE(vj1.Px(),vj1.Py(),vj1.Pz(),vj1.E());
-	      vj1.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
-	    }
-	    else if(vec.Pt() > vj2.Pt()){
-	      vj2.SetPxPyPzE(vec.Px(),vec.Py(),vec.Pz(),vec.E());
-	    }
-	  }
-        }
+	}
 	getline(ifs,line);
       }
       if     (lType[0] == 3 && lType[1] == 0 && lType[2] == 0) eventType[0]++;
@@ -167,6 +170,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       if(pass[0] == 1) npass[0]++;
       if(pass[1] == 1) npass[1]++;
       if(pass[2] == 3) npass[2]++;
+      if(pass[3] >= 1) npass[3]++;
 
       hDVar[0]->Fill(TMath::Min(njets,4.499),weight);
       if(wsign == 1) hDVar[1]->Fill(TMath::Min(njets,4.499),weight);
@@ -194,7 +198,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   nt->Write();
   for(UInt_t j=0; j<nHist; j++) hDVar[j]->Write();
   outtuple->Close();
-  if(nevents > 0) printf("(N(W+),N(W-),N(W+)+N(W-),N(3l)) / tot: (%d,%d,%d,%d) -> %d\n",npass[0],npass[1],npass[0]+npass[1],npass[2],nevents);
+  if(nevents > 0) printf("(N(W+),N(W-),N(W+)+N(W-),N(3l),N(neu)) / tot: (%d,%d,%d,%d,%d) -> %d\n",npass[0],npass[1],npass[0]+npass[1],npass[2],npass[3],nevents);
   else            printf("empty file\n");
   printf("           3m0e0t 2m1e0t 2m0e1t 1m2e0t 1m0e2t 1m1e1t 0m3e0t 0m0e3t 0m2e1t 0m1e2t\n");
   printf("eventType: %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
