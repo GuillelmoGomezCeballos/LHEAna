@@ -22,8 +22,8 @@ double DeltaPhi(double phi1, double phi2);
 // cmsStage /store/lhe/9744/WWSS_noH.lhe ./ 0.0215738
 // cmsStage /store/lhe/9745/WWSS_wH.lhe ./  0.0286444
 // /afs/cern.ch/user/a/anlevin/public/forGuillelmo18Nov2013/ww_to_ll_same_sign_anom_8_tev_0_tev-4.lhe
-void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/user/c/ceballos/Condor_proc/test/",
-	           TString infname="WZJetsTo3LNu_8TeV-madgraph_166134025.lhe",
+void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/samples/wzlhe8tev/",
+	           TString infname="WZJetsTo3LNu_8TeV-madgraph_166134011.lhe",
 		   double weight = 1.0, bool withTaus = kTRUE
 	       )
 {
@@ -33,7 +33,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/user/c/ceballos/Condor_proc/
   TString outNtuplename = Form("%s",infname.Data());
   outNtuplename.ReplaceAll(".lhe",".root");
   TFile *outtuple = TFile::Open(outNtuplename.Data(),"recreate");
-  TNtuple *nt = new TNtuple("Events","Events","ptl1:ptl2:ptl3:ptn:njets:ptj1:ptj2:detajj:dphijj:mjj:wsign");
+  TNtuple *nt = new TNtuple("Events","Events","ptl1:ptl2:ptl3:ptn:njets:ptj1:ptj2:etaj1:etaj2:detajj:dphijj:mjj:wsign");
 
   // some weighted distributions
   TH1D *hDVar[20];
@@ -143,7 +143,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/user/c/ceballos/Condor_proc/
         printf("Impossible: %d %d %d\n",lType[0],lType[1],lType[2]); assert(0);
       }
 
-      double ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,detajj,dphijj,mjj,wsign;
+      double ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign;
       // leptons info
       ptl1   = vl1.Pt();
       ptl2   = vl2.Pt();
@@ -152,6 +152,10 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/user/c/ceballos/Condor_proc/
       njets  = (double)nJets;
       ptj1   = vj1.Pt();
       ptj2   = vj2.Pt();
+      if(ptj1>0) etaj1 = vj1.Eta();
+      else       etaj1 = -9.;
+      if(ptj2>0) etaj2 = vj2.Eta();
+      else       etaj2 = -9.;
       if(ptj2>0) detajj = TMath::Abs(vj1.Eta()-vj2.Eta());
       else       detajj = 0;
       dphijj = DeltaPhi(vj1.Phi(),vj2.Phi());
@@ -168,7 +172,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/user/c/ceballos/Condor_proc/
       if(wsign == 1) hDVar[1]->Fill(TMath::Min(njets,4.499),weight);
       else           hDVar[2]->Fill(TMath::Min(njets,4.499),weight);
       if(njets >= 2 && TMath::Abs(wsign) == 1){
-        nt->Fill(ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,detajj,dphijj,mjj,wsign);
+        nt->Fill(ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign);
 	hDVar[3] ->Fill(TMath::Min(ptl1,399.999),weight);
 	hDVar[4] ->Fill(TMath::Min(ptl2,399.999),weight);
 	hDVar[5] ->Fill(TMath::Min(ptl3,399.999),weight);
@@ -190,7 +194,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/user/c/ceballos/Condor_proc/
   nt->Write();
   for(UInt_t j=0; j<nHist; j++) hDVar[j]->Write();
   outtuple->Close();
-  if(nevents > 0) printf("pass / tot: (%d,%d,%d) -> %d\n",npass[0],npass[1],npass[2],nevents);
+  if(nevents > 0) printf("(N(W+),N(W-),N(W+)+N(W-),N(3l)) / tot: (%d,%d,%d,%d) -> %d\n",npass[0],npass[1],npass[0]+npass[1],npass[2],nevents);
   else            printf("empty file\n");
   printf("eventType: %d %d %d %d %d %d %d %d %d %d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
                                                       eventType[5],eventType[6],eventType[7],eventType[8],eventType[9]);
