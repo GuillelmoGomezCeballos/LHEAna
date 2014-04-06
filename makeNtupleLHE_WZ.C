@@ -196,7 +196,8 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   outtuple->Close();
   if(nevents > 0) printf("(N(W+),N(W-),N(W+)+N(W-),N(3l)) / tot: (%d,%d,%d,%d) -> %d\n",npass[0],npass[1],npass[0]+npass[1],npass[2],nevents);
   else            printf("empty file\n");
-  printf("eventType: %d %d %d %d %d %d %d %d %d %d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
+  printf("           3m0e0t 2m1e0t 2m0e1t 1m2e0t 1m0e2t 1m1e1t 0m3e0t 0m0e3t 0m2e1t 0m1e2t\n");
+  printf("eventType: %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
                                                       eventType[5],eventType[6],eventType[7],eventType[8],eventType[9]);
 }
 
