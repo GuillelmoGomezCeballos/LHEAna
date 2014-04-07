@@ -164,11 +164,11 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       dphijj = DeltaPhi(vj1.Phi(),vj2.Phi());
       mjj    = (vj1+vj2).M();
       
-      wsign = (double)(pass[0]-pass[1]);
+      wsign = (double)(pass[0]-pass[1])/TMath::Abs(pass[0]-pass[1]);
       //if(TMath::Abs(wsign) != 1) {printf("total W charge should be +/- 1 (%d)\n",(int)wsign); assert(0);}
 
-      if(pass[0] == 1) npass[0]++;
-      if(pass[1] == 1) npass[1]++;
+      if(pass[0] >= 1) npass[0]++;
+      if(pass[1] >= 1) npass[1]++;
       if(pass[2] == 3) npass[2]++;
       if(pass[3] >= 1) npass[3]++;
 
