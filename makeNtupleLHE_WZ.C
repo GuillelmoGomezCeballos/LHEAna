@@ -18,13 +18,11 @@
 
 double DeltaPhi(double phi1, double phi2);
 
-// cmsStage /store/lhe/7420/SMHiggsWW_125_JHU_8TeV.lhe ./ 0.006758684611
-// cmsStage /store/lhe/9744/WWSS_noH.lhe ./ 0.0215738
-// cmsStage /store/lhe/9745/WWSS_wH.lhe ./  0.0286444
-// /afs/cern.ch/user/a/anlevin/public/forGuillelmo18Nov2013/ww_to_ll_same_sign_anom_8_tev_0_tev-4.lhe
+// root -l -q -b makeNtupleLHE_WZ.C+'("/afs/cern.ch/work/c/ceballos/public/samples/wzlhe8tev_qcdewk/","wzgamma_qed_5_qcd_99_sm.lhe",1,1,1)'
+// root -l -q -b makeNtupleLHE_WZ.C+'("/afs/cern.ch/work/c/ceballos/public/samples/wwsslhe8tev_qcdewk/","qed_4_qcd_99_sm.lhe",1,1,0)'
 void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/samples/wzlhe8tev/",
 	           TString infname="WZJetsTo3LNu_8TeV-madgraph_166134011.lhe",
-		   double weight = 1.0, bool withTaus = kTRUE
+		   double weight = 1.0, bool withTaus = kTRUE, bool is3L = kTRUE
 	       )
 {
   ifstream ifs(Form("%s/%s",pathDir.Data(),infname.Data()));
@@ -33,7 +31,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   TString outNtuplename = Form("%s",infname.Data());
   outNtuplename.ReplaceAll(".lhe",".root");
   TFile *outtuple = TFile::Open(outNtuplename.Data(),"recreate");
-  TNtuple *nt = new TNtuple("Events","Events","ptl1:ptl2:ptl3:ptn:njets:ptj1:ptj2:etaj1:etaj2:detajj:dphijj:mjj:wsign");
+  TNtuple *nt = new TNtuple("Events","Events","ptl1:ptl2:ptl3:ptn:njets:ptj1:ptj2:etaj1:etaj2:detajj:dphijj:mjj:wsign:drll:drlj");
 
   // some weighted distributions
   TH1D *hDVar[20];
@@ -86,7 +84,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       while(line.compare("</event>") != 0) {
 	stringstream sstmp(line);
 	TString Line = line;
-	if(!Line.Contains("#")) { // avoid crappy lines
+	if(!Line.Contains("#") && line.compare("") != 0) { // avoid crappy lines
 	  sstmp >> idup >> istup >> mothup1 >> mothup2 >> icolup1 >> icolup2 >> pupx >> pupy >> pupz >> pupe >> pupm >> vtimup >> spinup;
 
 	  TLorentzVector vec;
@@ -117,8 +115,9 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	    if(TMath::Abs(idup) == 13) lType[1]++;
 	    if(TMath::Abs(idup) == 15) lType[2]++;
 
-	    if(TMath::Abs(idup) == 1 || TMath::Abs(idup) == 2 || TMath::Abs(idup) == 3 || 
-	       TMath::Abs(idup) == 4 || TMath::Abs(idup) == 5 || TMath::Abs(idup) == 6) {
+	    if((TMath::Abs(idup) == 1 || TMath::Abs(idup) == 2 || TMath::Abs(idup) == 3 || 
+	        TMath::Abs(idup) == 4 || TMath::Abs(idup) == 5 || TMath::Abs(idup) == 6) &&
+		vec.Pt() > 0.0) {
 	      nJets++;
 	      if     (vec.Pt() > vj1.Pt()){
 		vj2.SetPxPyPzE(vj1.Px(),vj1.Py(),vj1.Pz(),vj1.E());
@@ -132,25 +131,40 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	}
 	getline(ifs,line);
       }
-      if     (lType[0] == 3 && lType[1] == 0 && lType[2] == 0) eventType[0]++;
-      else if(lType[0] == 2 && lType[1] == 1 && lType[2] == 0) eventType[1]++;
-      else if(lType[0] == 2 && lType[1] == 0 && lType[2] == 1) eventType[2]++;
-      else if(lType[0] == 1 && lType[1] == 2 && lType[2] == 0) eventType[3]++;
-      else if(lType[0] == 1 && lType[1] == 0 && lType[2] == 2) eventType[4]++;
-      else if(lType[0] == 1 && lType[1] == 1 && lType[2] == 1) eventType[5]++;
-      else if(lType[0] == 0 && lType[1] == 3 && lType[2] == 0) eventType[6]++;
-      else if(lType[0] == 0 && lType[1] == 0 && lType[2] == 3) eventType[7]++;
-      else if(lType[0] == 0 && lType[1] == 2 && lType[2] == 1) eventType[8]++;
-      else if(lType[0] == 0 && lType[1] == 1 && lType[2] == 2) eventType[9]++;
+      
+      if(is3L == kTRUE){
+        if     (lType[0] == 3 && lType[1] == 0 && lType[2] == 0) eventType[0]++;
+        else if(lType[0] == 2 && lType[1] == 1 && lType[2] == 0) eventType[1]++;
+        else if(lType[0] == 2 && lType[1] == 0 && lType[2] == 1) eventType[2]++;
+        else if(lType[0] == 1 && lType[1] == 2 && lType[2] == 0) eventType[3]++;
+        else if(lType[0] == 1 && lType[1] == 0 && lType[2] == 2) eventType[4]++;
+        else if(lType[0] == 1 && lType[1] == 1 && lType[2] == 1) eventType[5]++;
+        else if(lType[0] == 0 && lType[1] == 3 && lType[2] == 0) eventType[6]++;
+        else if(lType[0] == 0 && lType[1] == 0 && lType[2] == 3) eventType[7]++;
+        else if(lType[0] == 0 && lType[1] == 2 && lType[2] == 1) eventType[8]++;
+        else if(lType[0] == 0 && lType[1] == 1 && lType[2] == 2) eventType[9]++;
+        else {
+          printf("Impossible3L: %d %d %d\n",lType[0],lType[1],lType[2]); assert(0);
+        }
+      }
       else {
-        printf("Impossible: %d %d %d\n",lType[0],lType[1],lType[2]); assert(0);
+        if     (lType[0] == 2 && lType[1] == 0 && lType[2] == 0) eventType[0]++;
+        else if(lType[0] == 1 && lType[1] == 1 && lType[2] == 0) eventType[1]++;
+        else if(lType[0] == 1 && lType[1] == 0 && lType[2] == 1) eventType[2]++;
+        else if(lType[0] == 0 && lType[1] == 2 && lType[2] == 0) eventType[3]++;
+        else if(lType[0] == 0 && lType[1] == 0 && lType[2] == 2) eventType[4]++;
+        else if(lType[0] == 0 && lType[1] == 1 && lType[2] == 1) eventType[5]++;
+        else {
+          printf("Impossible2L: %d %d %d\n",lType[0],lType[1],lType[2]); assert(0);
+        }
       }
 
-      double ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign;
+      double ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign,drll,drlj;
       // leptons info
       ptl1   = vl1.Pt();
       ptl2   = vl2.Pt();
-      ptl3   = vl3.Pt();
+      if(is3L == kTRUE) ptl3 = vl3.Pt();
+      else              ptl3 = 0.0;
       ptn    = vn.Pt();
       njets  = (double)nJets;
       ptj1   = vj1.Pt();
@@ -164,6 +178,36 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       dphijj = DeltaPhi(vj1.Phi(),vj2.Phi());
       mjj    = (vj1+vj2).M();
       
+      drll = sqrt(TMath::Abs(vl1.Eta()-vl2.Eta())*TMath::Abs(vl1.Eta()-vl2.Eta())+DeltaPhi(vl1.Phi(),vl2.Phi())*DeltaPhi(vl1.Phi(),vl2.Phi()));
+      if(ptl3 > 0) {
+        double dr = sqrt(TMath::Abs(vl1.Eta()-vl3.Eta())*TMath::Abs(vl1.Eta()-vl3.Eta())+DeltaPhi(vl1.Phi(),vl3.Phi())*DeltaPhi(vl1.Phi(),vl3.Phi()));
+	if(dr < drll) drll = dr;
+               dr = sqrt(TMath::Abs(vl2.Eta()-vl3.Eta())*TMath::Abs(vl2.Eta()-vl3.Eta())+DeltaPhi(vl2.Phi(),vl3.Phi())*DeltaPhi(vl2.Phi(),vl3.Phi()));
+	if(dr < drll) drll = dr;
+      }
+      
+      drlj = 999.;
+      if(ptj1 > 0){
+        double dr = sqrt(TMath::Abs(vj1.Eta()-vl1.Eta())*TMath::Abs(vj1.Eta()-vl1.Eta())+DeltaPhi(vj1.Phi(),vl1.Phi())*DeltaPhi(vj1.Phi(),vl1.Phi()));
+	if(dr < drlj) drlj = dr;
+        dr = sqrt(TMath::Abs(vj1.Eta()-vl2.Eta())*TMath::Abs(vj1.Eta()-vl2.Eta())+DeltaPhi(vj1.Phi(),vl2.Phi())*DeltaPhi(vj1.Phi(),vl2.Phi()));
+	if(dr < drlj) drlj = dr;
+        if(ptl3 > 0) {
+	  dr = sqrt(TMath::Abs(vj1.Eta()-vl3.Eta())*TMath::Abs(vj1.Eta()-vl3.Eta())+DeltaPhi(vj1.Phi(),vl3.Phi())*DeltaPhi(vj1.Phi(),vl3.Phi()));
+	  if(dr < drlj) drlj = dr;
+	}
+      }
+      if(ptj2 > 0){
+        double dr = sqrt(TMath::Abs(vj2.Eta()-vl1.Eta())*TMath::Abs(vj2.Eta()-vl1.Eta())+DeltaPhi(vj2.Phi(),vl1.Phi())*DeltaPhi(vj2.Phi(),vl1.Phi()));
+	if(dr < drlj) drlj = dr;
+        dr = sqrt(TMath::Abs(vj2.Eta()-vl2.Eta())*TMath::Abs(vj2.Eta()-vl2.Eta())+DeltaPhi(vj2.Phi(),vl2.Phi())*DeltaPhi(vj2.Phi(),vl2.Phi()));
+	if(dr < drlj) drlj = dr;
+        if(ptl3 > 0) {
+	  dr = sqrt(TMath::Abs(vj2.Eta()-vl3.Eta())*TMath::Abs(vj2.Eta()-vl3.Eta())+DeltaPhi(vj2.Phi(),vl3.Phi())*DeltaPhi(vj2.Phi(),vl3.Phi()));
+	  if(dr < drlj) drlj = dr;
+	}
+      }
+      
       wsign = (double)(pass[0]-pass[1])/TMath::Abs(pass[0]-pass[1]);
       //if(TMath::Abs(wsign) != 1) {printf("total W charge should be +/- 1 (%d)\n",(int)wsign); assert(0);}
 
@@ -175,8 +219,10 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       hDVar[0]->Fill(TMath::Min(njets,4.499),weight);
       if(wsign == 1) hDVar[1]->Fill(TMath::Min(njets,4.499),weight);
       else           hDVar[2]->Fill(TMath::Min(njets,4.499),weight);
-      if(njets >= 2 && TMath::Abs(wsign) == 1){
-        nt->Fill(ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign);
+      if(njets >= 2 && TMath::Abs(wsign) == 1 &&
+         TMath::Abs(vl1.Eta()) < 2.5 && TMath::Abs(vl2.Eta()) < 2.5 && 
+	 (is3L == kFALSE || TMath::Abs(vl3.Eta()) < 2.5)){
+        nt->Fill(ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign,drll,drlj);
 	hDVar[3] ->Fill(TMath::Min(ptl1,399.999),weight);
 	hDVar[4] ->Fill(TMath::Min(ptl2,399.999),weight);
 	hDVar[5] ->Fill(TMath::Min(ptl3,399.999),weight);
@@ -200,9 +246,16 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   outtuple->Close();
   if(nevents > 0) printf("(N(W+),N(W-),N(W+)+N(W-),N(3l),N(neu)) / tot: (%d,%d,%d,%d,%d) -> %d\n",npass[0],npass[1],npass[0]+npass[1],npass[2],npass[3],nevents);
   else            printf("empty file\n");
-  printf("           3m0e0t 2m1e0t 2m0e1t 1m2e0t 1m0e2t 1m1e1t 0m3e0t 0m0e3t 0m2e1t 0m1e2t\n");
-  printf("eventType: %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
-                                                      eventType[5],eventType[6],eventType[7],eventType[8],eventType[9]);
+  if(is3L == kTRUE){
+    printf("           3m0e0t 2m1e0t 2m0e1t 1m2e0t 1m0e2t 1m1e1t 0m3e0t 0m0e3t 0m2e1t 0m1e2t\n");
+    printf("eventType: %6d %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
+                                                                  eventType[5],eventType[6],eventType[7],eventType[8],eventType[9]);
+  }
+  else {
+    printf("           2m0e0t 1m1e0t 1m0e1t 0m2e0t 0m0e2t 0m1e1t\n");
+    printf("eventType: %6d %6d %6d %6d %6d %6d\n",eventType[0],eventType[1],eventType[2],eventType[3],eventType[4],
+                                                  eventType[5]);
+  }
 }
 
 double DeltaPhi(double phi1, double phi2)
