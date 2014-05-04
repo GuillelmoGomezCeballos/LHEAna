@@ -22,7 +22,7 @@ double DeltaPhi(double phi1, double phi2);
 // root -l -q -b makeNtupleLHE_WZ.C+'("/afs/cern.ch/work/c/ceballos/public/samples/wwsslhe8tev_qcdewk/","qed_4_qcd_99_sm.lhe",1,1,0)'
 void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/samples/wzlhe8tev/",
 	           TString infname="WZJetsTo3LNu_8TeV-madgraph_166134011.lhe",
-		   double weight = 1.0, bool withTaus = kTRUE, bool is3L = kTRUE
+		   double weightIni = 1.0, bool withTaus = kTRUE, bool is3L = kTRUE
 	       )
 {
   ifstream ifs(Form("%s/%s",pathDir.Data(),infname.Data()));
@@ -31,11 +31,11 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   TString outNtuplename = Form("%s",infname.Data());
   outNtuplename.ReplaceAll(".lhe",".root");
   TFile *outtuple = TFile::Open(outNtuplename.Data(),"recreate");
-  TNtuple *nt = new TNtuple("Events","Events","ptl1:ptl2:ptl3:ptn:njets:ptj1:ptj2:etaj1:etaj2:detajj:dphijj:mjj:wsign:drll:drlj");
+  TNtuple *nt = new TNtuple("Events","Events","ptl1:ptl2:ptl3:ptn:njets:ptj1:ptj2:etaj1:etaj2:detajj:dphijj:mjj:wsign:drlj:weight");
 
   // some weighted distributions
   TH1D *hDVar[20];
-  const unsigned int nHist = 12;
+  const unsigned int nHist = 13;
   hDVar[ 0] = new TH1D(Form("hDVar_0") ,";N_{jets};events",5,-0.5,4.5);
   hDVar[ 1] = new TH1D(Form("hDVar_1") ,";N_{jets} W+;events",5,-0.5,4.5);
   hDVar[ 2] = new TH1D(Form("hDVar_2") ,";N_{jets} W-;events",5,-0.5,4.5);
@@ -48,6 +48,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   hDVar[ 9] = new TH1D(Form("hDVar_9") ,";#eta_{jj};events",100,0.,10.);
   hDVar[10] = new TH1D(Form("hDVar_10"),";#Delta #phi_{jj};events",100,0.,TMath::Pi());
   hDVar[11] = new TH1D(Form("hDVar_11"),";m_{jj} [GeV];events",100,0.,4000.);
+  hDVar[12] = new TH1D(Form("hDVar_12"),";#Delta R_{ll} ;events",100,0.,5.);
   for(UInt_t j=0; j<nHist; j++) {hDVar[j]->Sumw2(); hDVar[j]->SetMinimum(0.0000001);} 
 
   int eventType[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -81,6 +82,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       getline(ifs,line);
       getline(ifs,line);
       int pass[4] = {0,0,0,0};int lType[3] = {0,0,0};int nJets = 0;
+      double weight = weightIni;
       while(line.compare("</event>") != 0) {
 	stringstream sstmp(line);
 	TString Line = line;
@@ -95,6 +97,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	  if(idup==-24) {pass[1]++;}
 
 	  if(istup == 1){
+	    // if(TMath::Abs(idup) ==  15) weight = weight*0.3524; // to consider leptonic tau decays only
             if(TMath::Abs(idup) ==  11 || TMath::Abs(idup) ==  13 || (TMath::Abs(idup) ==  15 && withTaus == kTRUE)) {
 	      pass[2]++;
 	      if     (vec.Pt() > vl1.Pt()){
@@ -161,10 +164,12 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 
       double ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign,drll,drlj;
       // leptons info
-      ptl1   = vl1.Pt();
-      ptl2   = vl2.Pt();
-      if(is3L == kTRUE) ptl3 = vl3.Pt();
-      else              ptl3 = 0.0;
+      if(vl1.P() > 0) ptl1 = vl1.Pt();
+      else            ptl1 = 0.0;
+      if(vl2.P() > 0) ptl2 = vl2.Pt();
+      else            ptl2 = 0.0;
+      if(vl3.P() > 0) ptl3 = vl3.Pt();
+      else            ptl3 = 0.0;
       ptn    = vn.Pt();
       njets  = (double)nJets;
       ptj1   = vj1.Pt();
@@ -178,7 +183,10 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       dphijj = DeltaPhi(vj1.Phi(),vj2.Phi());
       mjj    = (vj1+vj2).M();
       
-      drll = sqrt(TMath::Abs(vl1.Eta()-vl2.Eta())*TMath::Abs(vl1.Eta()-vl2.Eta())+DeltaPhi(vl1.Phi(),vl2.Phi())*DeltaPhi(vl1.Phi(),vl2.Phi()));
+      drll = 999.;
+      if(ptl1 > 0 && ptl2 > 0) {
+        drll = sqrt(TMath::Abs(vl1.Eta()-vl2.Eta())*TMath::Abs(vl1.Eta()-vl2.Eta())+DeltaPhi(vl1.Phi(),vl2.Phi())*DeltaPhi(vl1.Phi(),vl2.Phi()));
+      }
       if(ptl3 > 0) {
         double dr = sqrt(TMath::Abs(vl1.Eta()-vl3.Eta())*TMath::Abs(vl1.Eta()-vl3.Eta())+DeltaPhi(vl1.Phi(),vl3.Phi())*DeltaPhi(vl1.Phi(),vl3.Phi()));
 	if(dr < drll) drll = dr;
@@ -186,23 +194,31 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	if(dr < drll) drll = dr;
       }
       
-      drlj = 999.;
+      drlj = 999.;double dr;
       if(ptj1 > 0){
-        double dr = sqrt(TMath::Abs(vj1.Eta()-vl1.Eta())*TMath::Abs(vj1.Eta()-vl1.Eta())+DeltaPhi(vj1.Phi(),vl1.Phi())*DeltaPhi(vj1.Phi(),vl1.Phi()));
-	if(dr < drlj) drlj = dr;
-        dr = sqrt(TMath::Abs(vj1.Eta()-vl2.Eta())*TMath::Abs(vj1.Eta()-vl2.Eta())+DeltaPhi(vj1.Phi(),vl2.Phi())*DeltaPhi(vj1.Phi(),vl2.Phi()));
-	if(dr < drlj) drlj = dr;
-        if(ptl3 > 0) {
+        if(ptl1 > 0) {
+	  dr = sqrt(TMath::Abs(vj1.Eta()-vl1.Eta())*TMath::Abs(vj1.Eta()-vl1.Eta())+DeltaPhi(vj1.Phi(),vl1.Phi())*DeltaPhi(vj1.Phi(),vl1.Phi()));
+	  if(dr < drlj) drlj = dr;
+        }
+        if(ptl2 > 0) {
+          dr = sqrt(TMath::Abs(vj1.Eta()-vl2.Eta())*TMath::Abs(vj1.Eta()-vl2.Eta())+DeltaPhi(vj1.Phi(),vl2.Phi())*DeltaPhi(vj1.Phi(),vl2.Phi()));
+	  if(dr < drlj) drlj = dr;
+        }
+	if(ptl3 > 0) {
 	  dr = sqrt(TMath::Abs(vj1.Eta()-vl3.Eta())*TMath::Abs(vj1.Eta()-vl3.Eta())+DeltaPhi(vj1.Phi(),vl3.Phi())*DeltaPhi(vj1.Phi(),vl3.Phi()));
 	  if(dr < drlj) drlj = dr;
 	}
       }
       if(ptj2 > 0){
-        double dr = sqrt(TMath::Abs(vj2.Eta()-vl1.Eta())*TMath::Abs(vj2.Eta()-vl1.Eta())+DeltaPhi(vj2.Phi(),vl1.Phi())*DeltaPhi(vj2.Phi(),vl1.Phi()));
-	if(dr < drlj) drlj = dr;
-        dr = sqrt(TMath::Abs(vj2.Eta()-vl2.Eta())*TMath::Abs(vj2.Eta()-vl2.Eta())+DeltaPhi(vj2.Phi(),vl2.Phi())*DeltaPhi(vj2.Phi(),vl2.Phi()));
-	if(dr < drlj) drlj = dr;
-        if(ptl3 > 0) {
+        if(ptl1 > 0) {
+          dr = sqrt(TMath::Abs(vj2.Eta()-vl1.Eta())*TMath::Abs(vj2.Eta()-vl1.Eta())+DeltaPhi(vj2.Phi(),vl1.Phi())*DeltaPhi(vj2.Phi(),vl1.Phi()));
+	  if(dr < drlj) drlj = dr;
+        }
+        if(ptl2 > 0) {
+	  dr = sqrt(TMath::Abs(vj2.Eta()-vl2.Eta())*TMath::Abs(vj2.Eta()-vl2.Eta())+DeltaPhi(vj2.Phi(),vl2.Phi())*DeltaPhi(vj2.Phi(),vl2.Phi()));
+	  if(dr < drlj) drlj = dr;
+        }
+	if(ptl3 > 0) {
 	  dr = sqrt(TMath::Abs(vj2.Eta()-vl3.Eta())*TMath::Abs(vj2.Eta()-vl3.Eta())+DeltaPhi(vj2.Phi(),vl3.Phi())*DeltaPhi(vj2.Phi(),vl3.Phi()));
 	  if(dr < drlj) drlj = dr;
 	}
@@ -220,9 +236,10 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       if(wsign == 1) hDVar[1]->Fill(TMath::Min(njets,4.499),weight);
       else           hDVar[2]->Fill(TMath::Min(njets,4.499),weight);
       if(njets >= 2 && TMath::Abs(wsign) == 1 &&
+         vl1.P() > 0 && vl2.P() > 0 &&
          TMath::Abs(vl1.Eta()) < 2.5 && TMath::Abs(vl2.Eta()) < 2.5 && 
 	 (is3L == kFALSE || TMath::Abs(vl3.Eta()) < 2.5)){
-        nt->Fill(ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign,drll,drlj);
+        nt->Fill(ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign,drlj,weight);
 	hDVar[3] ->Fill(TMath::Min(ptl1,399.999),weight);
 	hDVar[4] ->Fill(TMath::Min(ptl2,399.999),weight);
 	hDVar[5] ->Fill(TMath::Min(ptl3,399.999),weight);
@@ -232,6 +249,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	hDVar[9] ->Fill(TMath::Min(detajj,9.999),weight);
 	hDVar[10]->Fill(dphijj,weight);
 	hDVar[11]->Fill(TMath::Min(mjj,3999.999),weight);
+	hDVar[12]->Fill(TMath::Min(drll,4.999),weight);
       }
     } else {
       if(!TString(line).Contains("Random number generator exit values")) {
