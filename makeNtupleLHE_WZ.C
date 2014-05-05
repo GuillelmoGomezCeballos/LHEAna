@@ -119,7 +119,8 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	    if(TMath::Abs(idup) == 15) lType[2]++;
 
 	    if((TMath::Abs(idup) == 1 || TMath::Abs(idup) == 2 || TMath::Abs(idup) == 3 || 
-	        TMath::Abs(idup) == 4 || TMath::Abs(idup) == 5 || TMath::Abs(idup) == 6) &&
+	        TMath::Abs(idup) == 4 || TMath::Abs(idup) == 5 || TMath::Abs(idup) == 6 ||
+		TMath::Abs(idup) ==21) &&
 		vec.Pt() > 0.0) {
 	      nJets++;
 	      if     (vec.Pt() > vj1.Pt()){
@@ -233,9 +234,10 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
       if(pass[3] >= 1) npass[3]++;
 
       hDVar[0]->Fill(TMath::Min(njets,4.499),weight);
-      if(wsign == 1) hDVar[1]->Fill(TMath::Min(njets,4.499),weight);
-      else           hDVar[2]->Fill(TMath::Min(njets,4.499),weight);
-      if(njets >= 2 && TMath::Abs(wsign) == 1 &&
+      if     (wsign == +1) hDVar[1]->Fill(TMath::Min(njets,4.499),weight);
+      else if(wsign == -1) hDVar[2]->Fill(TMath::Min(njets,4.499),weight);
+
+      if(njets >= 2 &&
          vl1.P() > 0 && vl2.P() > 0 &&
          TMath::Abs(vl1.Eta()) < 2.5 && TMath::Abs(vl2.Eta()) < 2.5 && 
 	 (is3L == kFALSE || TMath::Abs(vl3.Eta()) < 2.5)){
