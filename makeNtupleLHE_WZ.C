@@ -35,7 +35,7 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 
   // some weighted distributions
   TH1D *hDVar[20];
-  const unsigned int nHist = 13;
+  const unsigned int nHist = 15;
   hDVar[ 0] = new TH1D(Form("hDVar_0") ,";N_{jets};events",5,-0.5,4.5);
   hDVar[ 1] = new TH1D(Form("hDVar_1") ,";N_{jets} W+;events",5,-0.5,4.5);
   hDVar[ 2] = new TH1D(Form("hDVar_2") ,";N_{jets} W-;events",5,-0.5,4.5);
@@ -49,6 +49,8 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
   hDVar[10] = new TH1D(Form("hDVar_10"),";#Delta #phi_{jj};events",100,0.,TMath::Pi());
   hDVar[11] = new TH1D(Form("hDVar_11"),";m_{jj} [GeV];events",100,0.,4000.);
   hDVar[12] = new TH1D(Form("hDVar_12"),";#Delta R_{ll} ;events",100,0.,5.);
+  hDVar[13] = new TH1D(Form("hDVar_13"),";pt_{T}^{H} [GeV];events",100,0.,400.);
+  hDVar[14] = new TH1D(Form("hDVar_14"),";|#eta_{T}^{H}|;events",100,-5.0,+5.0);
   for(UInt_t j=0; j<nHist; j++) {hDVar[j]->Sumw2(); hDVar[j]->SetMinimum(0.0000001);} 
 
   int eventType[10] = {0,0,0,0,0,0,0,0,0,0};
@@ -95,6 +97,8 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
 	  if(idup==+24) {pass[0]++;}
 
 	  if(idup==-24) {pass[1]++;}
+
+	  if(idup==25) {hDVar[13]->Fill(TMath::Min(vec.Pt(),399.999));if(vec.Pt() > 0) hDVar[14]->Fill(TMath::Min(TMath::Max(vec.Eta(),-4.999),4.999));}
 
 	  if(istup == 1){
 	    // if(TMath::Abs(idup) ==  15) weight = weight*0.3524; // to consider leptonic tau decays only
@@ -158,9 +162,9 @@ void makeNtupleLHE_WZ(TString pathDir="/afs/cern.ch/work/c/ceballos/public/sampl
         else if(lType[0] == 0 && lType[1] == 2 && lType[2] == 0) eventType[3]++;
         else if(lType[0] == 0 && lType[1] == 0 && lType[2] == 2) eventType[4]++;
         else if(lType[0] == 0 && lType[1] == 1 && lType[2] == 1) eventType[5]++;
-        else {
-          printf("Impossible2L: %d %d %d\n",lType[0],lType[1],lType[2]); assert(0);
-        }
+        //else {
+        //  printf("Impossible2L: %d %d %d\n",lType[0],lType[1],lType[2]); assert(0);
+        //}
       }
 
       double ptl1,ptl2,ptl3,ptn,njets,ptj1,ptj2,etaj1,etaj2,detajj,dphijj,mjj,wsign,drll,drlj;
